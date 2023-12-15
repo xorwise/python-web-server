@@ -1,7 +1,6 @@
 import socket
-import json
-import os
 from configurator import Configurator
+from exceptions import HTTPException
 from response import HTTPResponse
 from request import HTTPRequest
 
@@ -28,8 +27,8 @@ class TCPServer:
             print("Connected by ", addr)
 
             data = conn.recv(1024)
-
             response = self.handle_request(data)
+
             conn.sendall(response)
 
             conn.close()
@@ -40,17 +39,31 @@ class TCPServer:
 
 class HTTPServer(TCPServer):
     def handle_request(self, data):
-        request = HTTPRequest()
-        request.parse(data)
-
         try:
-            handler = getattr(self, "handle_" + request.method)
-        except AttributeError:
-            handler = self.HTTP_501_handler
+            request = HTTPRequest()
+            request.parse(data)
 
-        response = handler(request)
-
-        return response
+            try:
+                handler = getattr(self, "handle_" + request.method)
+                response = handler(request)
+            except AttributeError:
+                handler = self.HTTP_501_handler
+            return response
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                if request.uri is not None:
+                    response = HTTPResponse(
+                        e.status_code,
+                        self.configurator.endpoints.get(request.uri)[1],
+                        e.detail,
+                    )
+                else:
+                    response = HTTPResponse(
+                        e.status_code, "html", f"<h1>{e.detail}</h1>"
+                    )
+            else:
+                response = HTTPResponse(500, "json", data="Internal server error")
+            return response()
 
     def HTTP_404_handler(self, request: HTTPRequest):
         data = "<h1>Not found</h1>"
@@ -71,12 +84,21 @@ class HTTPServer(TCPServer):
         func, response_model = self.configurator.endpoints.get(
             (request.uri, "GET"), (None, None)
         )
-        if not func and not response_model:
+        if (not func and not response_model) or (
+            response_model not in request.accept_types()
+        ):
             return self.HTTP_404_handler(request)
         try:
             data = func(request)
-        except Exception:
-            return self.HTTP_500_handler(request)
+        except HTTPException as e:
+            response = HTTPResponse(
+                e.status_code,
+                self.configurator.endpoints.get((request.uri, "GET"))[1],
+                e.detail,
+            )
+            return response()
 
+        if isinstance(data, HTTPResponse):
+            return data()
         response = HTTPResponse(200, response_model, data)
         return response()

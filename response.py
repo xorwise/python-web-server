@@ -1,4 +1,8 @@
 import json
+from http import HTTPStatus
+import os
+from typing import Any
+
 
 CONTENT_TYPES = {
     "json": "application/json",
@@ -9,23 +13,18 @@ CONTENT_TYPES = {
 
 
 class HTTPResponse(object):
-    status_code: int
-    response_model: str
+    status_code: int = 200
+    response_model: str = "json"
     data: object
     headers = {
         "Server": "SimpleHTTP",
         "Content-Type": "text/html",
     }
 
-    status_codes = {
-        200: "OK",
-        404: "Not Found",
-        500: "Internal error",
-        501: "Not Implemented",
-    }
+    status_codes = {int(v): v.phrase for v in HTTPStatus.__members__.values()}
     response_line: str
 
-    def __init__(self, status_code, response_model, data):
+    def __init__(self, status_code: int, response_model: str = "html", data: Any = b""):
         self.status_code = status_code
         self.response_model = response_model
         self.data = data
@@ -52,6 +51,9 @@ class HTTPResponse(object):
             case "json":
                 return json.dumps(data).encode()
             case "html":
+                if os.path.exists(str(data)):
+                    with open(str(data), "rb") as f:
+                        return f.read()
                 return str(data).encode()
             case "text":
                 return str(data).encode()
@@ -67,18 +69,20 @@ class HTTPResponse(object):
 
     def __call__(self):
         try:
-            parsed_data = self._parse_data(self.data)
+            if self.data:
+                parsed_data = self._parse_data(self.data)
+            else:
+                parsed_data = self.status_codes[self.status_code]
         except Exception:
             response_line = self._response_line(500)
             headers = self._response_headers()
             return b"".join(
                 [response_line, headers, b"\r\n", b"<h1>Internal error</h1>"]
             )
-        response_line = self._response_line(200)
+        response_line = self._response_line(self.status_code)
         headers = self._response_headers(
             extra_headers={"Content-Type": CONTENT_TYPES[self.response_model]}
         )
-        print(headers)
         return b"".join(
             [
                 response_line,
