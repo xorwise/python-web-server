@@ -29,11 +29,11 @@ class HTTPResponse(object):
         self.response_model = response_model
         self.data = data
 
-    def _response_line(self, status_code: int):
+    async def _response_line(self, status_code: int):
         reason = self.status_codes.get(status_code)
         return f"HTTP/1.1 {status_code} {reason}\r\n".encode()
 
-    def _response_headers(self, extra_headers=None):
+    async def _response_headers(self, extra_headers=None):
         headers = self.headers.copy()
         if extra_headers:
             headers.update(extra_headers)
@@ -46,7 +46,7 @@ class HTTPResponse(object):
 
         return b"".join(new_headers)
 
-    def _parse_data(self, data):
+    async def _parse_data(self, data):
         match self.response_model:
             case "json":
                 return json.dumps(data).encode()
@@ -67,21 +67,21 @@ class HTTPResponse(object):
                 else:
                     return f"{data}".encode()
 
-    def __call__(self):
+    async def __call__(self):
         try:
             if self.data:
-                parsed_data = self._parse_data(self.data)
+                parsed_data = await self._parse_data(self.data)
             else:
                 parsed_data = self.status_codes[self.status_code]
         except Exception:
-            response_line = self._response_line(500)
-            headers = self._response_headers()
+            response_line = await self._response_line(500)
+            headers = await self._response_headers()
             return b"".join(
                 [response_line, headers, b"\r\n", b"<h1>Internal error</h1>"]
             )
-        response_line = self._response_line(self.status_code)
-        headers = self._response_headers(
-            extra_headers={"Content-Type": CONTENT_TYPES[self.response_model]}
+        response_line = await self._response_line(self.status_code)
+        headers = await self._response_headers(
+            extra_headers={"Content-Type": CONTENT_TYPES[self.response_model], "Content-Length": len(parsed_data)}
         )
         return b"".join(
             [
