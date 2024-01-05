@@ -5,10 +5,22 @@ import server
 
 configurator = Configurator()
 users = [
-    {"name": "John", "age": 30},
-    {"name": "Jane", "age": 25},
-    {"name": "Bob", "age": 40},
-    {"name": "Alice", "age": 35},
+    {
+        "name": "John",
+        "age": 30
+    },
+    {
+        "name": "Jane",
+        "age": 25
+    },
+    {
+        "name": "Bob",
+        "age": 40
+    },
+    {
+        "name": "Alice",
+        "age": 35
+    },
 ]
 
 
@@ -33,10 +45,28 @@ async def get_user(request: HTTPRequest) -> dict:
         raise HTTPException(404, detail="User not found")
     return user
 
+
 @configurator.post("/user", response_model="json")
 async def post_user(request: HTTPRequest) -> str:
     new_user = request.data
     return new_user
+
+
+@configurator.get("/user/{name}", response_model="json")
+async def get_user_by_name(name: str) -> dict:
+    for user in users:
+        if user["name"] == name:
+            return user
+    raise HTTPException(404, "User not found")
+
+
+@configurator.get("/users/{age}", response_model="json")
+async def get_users_by_age(age: int) -> list[dict]:
+    new_users = []
+    for user in users:
+        if user["age"] == age:
+            new_users.append(user)
+    return new_users
 
 
 if __name__ == "__main__":
