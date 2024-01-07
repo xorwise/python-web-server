@@ -47,6 +47,8 @@ class HTTPResponse(object):
         return b"".join(new_headers)
 
     async def _parse_data(self, data):
+        if not data:
+            return b""
         match self.response_model:
             case "json":
                 return json.dumps(data).encode()
@@ -69,10 +71,7 @@ class HTTPResponse(object):
 
     async def __call__(self):
         try:
-            if self.data:
-                parsed_data = await self._parse_data(self.data)
-            else:
-                parsed_data = self.status_codes[self.status_code]
+            parsed_data = await self._parse_data(self.data)
         except Exception:
             response_line = await self._response_line(500)
             headers = await self._response_headers()

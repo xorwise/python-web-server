@@ -13,7 +13,7 @@ class TCPServer:
     def __init__(self,
                  configurator: Configurator,
                  host="127.0.0.1",
-                 port="8888"):
+                 port=8888):
         self.configurator: Configurator = configurator
         self.host: str = host
         self.port: int = port
@@ -145,7 +145,100 @@ class Server(TCPServer):
         if isinstance(data, HTTPResponse):
             return data()
 
-        response = HTTPResponse(200, response_model, data)
+        response = HTTPResponse(201, response_model, data)
+        return await response()
+    
+    async def handle_PUT(self, request):
+        parameters, func, response_model, code = self.is_uri_exists(request)
+
+        match code:
+            case 0:
+                response = HTTPResponse(405,
+                                        data="<h1>Method not allowed</h1>")
+                return await response()
+            case -1:
+                response = HTTPResponse(404, data="<h1>Not found</h1>")
+                return await response()
+            case 1:
+                response = HTTPResponse(406, data="<h1>Not acceptable</h1>")
+                return await response()
+
+        try:
+            converted_parameters = self.convert_parameters(
+                request, parameters, func)
+            #TODO: add *args, **kwargs support
+            data = await func(**converted_parameters)
+        except HTTPException as e:
+            detail = e.detail
+            response = HTTPResponse(e.status_code, response_model, detail)
+            return await response()
+
+        if isinstance(data, HTTPResponse):
+            return data()
+
+        response = HTTPResponse(200, response_model, data) if data else HTTPResponse(204, response_model, data)
+        return await response()
+
+    async def handle_PATCH(self, request):
+        parameters, func, response_model, code = self.is_uri_exists(request)
+
+        match code:
+            case 0:
+                response = HTTPResponse(405,
+                                        data="<h1>Method not allowed</h1>")
+                return await response()
+            case -1:
+                response = HTTPResponse(404, data="<h1>Not found</h1>")
+                return await response()
+            case 1:
+                response = HTTPResponse(406, data="<h1>Not acceptable</h1>")
+                return await response()
+
+        try:
+            converted_parameters = self.convert_parameters(
+                request, parameters, func)
+            #TODO: add *args, **kwargs support
+            data = await func(**converted_parameters)
+        except HTTPException as e:
+            detail = e.detail
+            response = HTTPResponse(e.status_code, response_model, detail)
+            return await response()
+
+        if isinstance(data, HTTPResponse):
+            return data()
+
+        response = HTTPResponse(200, response_model, data) if data else HTTPResponse(204, response_model, data)
+        return await response()
+
+    async def handle_DELETE(self, request):
+        parameters, func, response_model, code = self.is_uri_exists(request)
+
+        match code:
+            case 0:
+                response = HTTPResponse(405,
+                                        data="<h1>Method not allowed</h1>")
+                return await response()
+            case -1:
+                response = HTTPResponse(404, data="<h1>Not found</h1>")
+                return await response()
+            case 1:
+                response = HTTPResponse(406, data="<h1>Not acceptable</h1>")
+                return await response()
+
+        try:
+            converted_parameters = self.convert_parameters(
+                request, parameters, func)
+            #TODO: add *args, **kwargs support
+            data = await func(**converted_parameters)
+        except HTTPException as e:
+            detail = e.detail
+            response = HTTPResponse(e.status_code, response_model, detail)
+            return await response()
+
+        if isinstance(data, HTTPResponse):
+            return data()
+
+        response = HTTPResponse(200, response_model, data) if data else HTTPResponse(204, response_model, data)
         return await response()
 
     def is_uri_exists(

@@ -68,6 +68,28 @@ async def get_users_by_age(age: int) -> list[dict]:
             new_users.append(user)
     return new_users
 
+@configurator.put("/user/{name}", response_model="json")
+async def put_user_by_name(name: str, request: HTTPRequest) -> dict:
+    for user in users:
+        if user["name"] == name:
+            user.update(request.data)
+            return user
+    raise HTTPException(404, "User not found")
+
+@configurator.patch("/user/{name}", response_model="json")
+async def patch_user_by_name(name: str, request: HTTPRequest) -> dict:
+    for user in users:
+        if user["name"] == name:
+            user.update(request.data)
+            return user
+    raise HTTPException(404, "User not found")
+
+@configurator.delete("/user/{name}", response_model="json")
+async def delete_user_by_name(name: str) -> None:
+    for user in users:
+        if user["name"] == name:
+            users.remove(user)
+            return
 
 if __name__ == "__main__":
     server.run(configurator)
