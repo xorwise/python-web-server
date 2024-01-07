@@ -68,3 +68,43 @@ class Configurator(object):
                     raise EnpointParseException(f"Missing parameter: {param}")
 
         return post_decorator
+
+    def put(self, path: str, response_model: ResponseModels) -> Callable:
+
+        def put_decorator(func: Callable) -> None:
+            path_regex = self._path_to_regex(path)
+            parameters = self._extract_parameters(path, path_regex)
+            self._endpoints[path_regex, "PUT"] = (func, response_model)
+            self.get_function_args(func)
+            for param in parameters:
+                if param not in self._func_params[func]:
+                    raise EnpointParseException(f"Missing parameter: {param}")
+
+        return put_decorator
+
+    def patch(self, path: str, response_model: ResponseModels) -> Callable:
+
+        def patch_decorator(func: Callable) -> None:
+            path_regex = self._path_to_regex(path)
+            parameters = self._extract_parameters(path, path_regex)
+            self._endpoints[path_regex, "PATCH"] = (func, response_model)
+            self.get_function_args(func)
+            for param in parameters:
+                if param not in self._func_params[func]:
+                    raise EnpointParseException(f"Missing parameter: {param}")
+
+        return patch_decorator
+
+    def delete(self, path: str, response_model: ResponseModels) -> Callable:
+
+        def delete_decorator(func: Callable) -> None:
+            path_regex = self._path_to_regex(path)
+            parameters = self._extract_parameters(path, path_regex)
+            self._endpoints[path_regex, "DELETE"] = (func, response_model)
+            self.get_function_args(func)
+            for param in parameters:
+                if param not in self._func_params[func]:
+                    raise EnpointParseException(f"Missing parameter: {param}")
+
+        return delete_decorator
+    
